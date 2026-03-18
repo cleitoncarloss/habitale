@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, Search, Clock, Phone, ChevronRight } from 'lucide-react';
+import { MessageCircle, Search, Clock, Phone, ChevronRight, UserPlus, X } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
+import FormSidebar from '@components/shared/FormSidebar';
 import * as whatsappConversationsService from '@services/whatsappConversationsService';
+import * as clientsService from '@services/clientsService';
 
 function ConversationsPage() {
   const [conversations, setConversations] = useState([]);
@@ -10,6 +12,17 @@ function ConversationsPage() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showPatientForm, setShowPatientForm] = useState(false);
+  const [savingPatient, setSavingPatient] = useState(false);
+  const [patientFormData, setPatientFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    birthDate: '',
+    patientType: '',
+    concern: '',
+  });
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     loadConversations();
@@ -81,6 +94,68 @@ function ConversationsPage() {
     }
   };
 
+  const cleanPhoneNumber = (phone) => {
+    return phone?.replace('@s.whatsapp.net', '') || '';
+  };
+
+  const handleConvertToPatient = () => {
+    if (selectedConversation) {
+      setPatientFormData({
+        name: selectedConversation.nome_cliente || '',
+        phone: cleanPhoneNumber(selectedConversation.telefone),
+        email: '',
+        birthDate: '',
+        patientType: '',
+        concern: selectedConversation.assunto || '',
+      });
+      setShowPatientForm(true);
+      setSuccessMessage('');
+    }
+  };
+
+  const handlePatientFormChange = (e) => {
+    const { name, value } = e.target;
+    setPatientFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSavePatient = async () => {
+    if (!patientFormData.name || !patientFormData.phone) {
+      alert('Nome e telefone são obrigatórios');
+      return;
+    }
+
+    try {
+      setSavingPatient(true);
+      const result = await clientsService.create(patientFormData);
+
+      if (result.error) {
+        alert(`Erro ao criar paciente: ${result.error.message}`);
+        return;
+      }
+
+      setSuccessMessage(`Paciente ${patientFormData.name} criado com sucesso!`);
+      setShowPatientForm(false);
+      setPatientFormData({
+        name: '',
+        phone: '',
+        email: '',
+        birthDate: '',
+        patientType: '',
+        concern: '',
+      });
+
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Erro ao criar paciente:', error);
+      alert('Erro ao criar paciente');
+    } finally {
+      setSavingPatient(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -93,6 +168,19 @@ function ConversationsPage() {
 
   return (
     <MainLayout>
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+          <span className="text-green-800">{successMessage}</span>
+          <button
+            onClick={() => setSuccessMessage('')}
+            className="text-green-600 hover:text-green-800"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col h-[calc(100vh-240px)]">
         {/* Header */}
         <div className="pb-6 flex-shrink-0">
@@ -159,13 +247,22 @@ function ConversationsPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full min-h-0">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 space-y-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {selectedConversation.nome_cliente}
-                    </h2>
-                    <p className="text-gray-600 text-sm mt-1">
-                      {selectedConversation.assunto || 'Sem assunto'}
-                    </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        {selectedConversation.nome_cliente}
+                      </h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {selectedConversation.assunto || 'Sem assunto'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleConvertToPatient}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
+                    >
+                      <UserPlus size={18} />
+                      <span className="text-sm font-medium">Tornar Paciente</span>
+                    </button>
                   </div>
 
                   {/* Contact Info */}
@@ -173,7 +270,7 @@ function ConversationsPage() {
                     {selectedConversation.telefone && (
                       <span className="flex items-center gap-1">
                         <Phone size={16} />
-                        {selectedConversation.telefone}
+                        {cleanPhoneNumber(selectedConversation.telefone)}
                       </span>
                     )}
                     {selectedConversation.created_at && (
@@ -254,6 +351,116 @@ function ConversationsPage() {
           </div>
         </div>
       </div>
+
+      {/* Patient Form Sidebar */}
+      <FormSidebar
+        isOpen={showPatientForm}
+        onClose={() => setShowPatientForm(false)}
+        title="Criar Novo Paciente"
+      >
+        <form className="space-y-4 p-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nome *
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={patientFormData.name}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Nome completo"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Telefone *
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={patientFormData.phone}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="(11) 9999-9999"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={patientFormData.email}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="email@exemplo.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Data de Nascimento
+            </label>
+            <input
+              type="date"
+              name="birthDate"
+              value={patientFormData.birthDate}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Paciente
+            </label>
+            <input
+              type="text"
+              name="patientType"
+              value={patientFormData.patientType}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Novo, Retorno"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Observações
+            </label>
+            <textarea
+              name="concern"
+              value={patientFormData.concern}
+              onChange={handlePatientFormChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows="3"
+              placeholder="Adicionar observações..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setShowPatientForm(false)}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSavePatient}
+              disabled={savingPatient}
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingPatient ? 'Salvando...' : 'Criar Paciente'}
+            </button>
+          </div>
+        </form>
+      </FormSidebar>
     </MainLayout>
   );
 }
