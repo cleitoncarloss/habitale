@@ -1,0 +1,15 @@
+const CONVERSATION_STATUSES = Object.freeze({
+  AWAITING_RESPONSE: 'aguardando_resposta',
+  RESPONDED: 'respondida',
+  SCHEDULED: 'agendada',
+  COMPLETED: 'finalizada',
+});
+
+const STATUS_EMOJIS = Object.freeze({
+  [CONVERSATION_STATUSES.AWAITING_RESPONSE]: '🔴',
+  [CONVERSATION_STATUSES.RESPONDED]: '🟢',
+  [CONVERSATION_STATUSES.SCHEDULED]: '🟡',
+  [CONVERSATION_STATUSES.COMPLETED]: '⚪',
+});
+
+export { CONVERSATION_STATUSES, STATUS_EMOJIS };

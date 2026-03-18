@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+html,
+body {
+  height: 100%;
+}
+
+@layer components {
+  button {
+    @apply cursor-pointer;
+  }
+
+  [role="tab"] {
+    @apply cursor-pointer;
+  }
+
+  [role="tablist"] button {
+    @apply cursor-pointer;
+  }
+}

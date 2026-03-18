@@ -1,0 +1,242 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Plus, Eye, Phone, Mail } from 'lucide-react';
+import MainLayout from '@components/layout/MainLayout';
+import FormSidebar from '@components/shared/FormSidebar';
+import * as clientsService from '@services/clientsService';
+
+function PatientsPage() {
+  const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingPatient, setEditingPatient] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    birth_date: '',
+  });
+
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  const loadPatients = async () => {
+    try {
+      setIsLoading(true);
+      const result = await clientsService.fetchAll();
+      setPatients(result.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar pacientes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenForm = () => {
+    setEditingPatient(null);
+    setFormData({ name: '', email: '', phone: '', birth_date: '' });
+    setShowForm(true);
+  };
+
+
+  const handleSavePatient = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingPatient) {
+        await clientsService.update(editingPatient.id, {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          birthDate: formData.birth_date,
+        });
+      } else {
+        await clientsService.create({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          birthDate: formData.birth_date,
+        });
+      }
+      setFormData({ name: '', email: '', phone: '', birth_date: '' });
+      setEditingPatient(null);
+      setShowForm(false);
+      loadPatients();
+    } catch (error) {
+      console.error('Erro ao salvar paciente:', error);
+    }
+  };
+
+  const handleViewPatient = (patientId) => {
+    navigate(`/cliente/${patientId}`);
+  };
+
+  const filteredPatients = patients.filter(
+    (patient) =>
+      patient.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.telefone?.includes(searchTerm)
+  );
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-gray-600">Carregando pacientes...</div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Pacientes</h1>
+            <p className="text-gray-600 mt-1">Gerencie o cadastro de pacientes da clínica</p>
+          </div>
+          <button
+            onClick={handleOpenForm}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+          >
+            <Plus size={20} />
+            Novo Paciente
+          </button>
+        </div>
+
+        {/* Add/Edit Patient Sidebar */}
+        <FormSidebar
+          isOpen={showForm}
+          onClose={() => setShowForm(false)}
+          title={editingPatient ? 'Editar Paciente' : 'Novo Paciente'}
+        >
+          <form onSubmit={handleSavePatient} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Nome do paciente"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="email@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="(19) 98917-4429"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data de Nascimento
+              </label>
+              <input
+                type="date"
+                value={formData.birth_date}
+                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+              >
+                {editingPatient ? 'Atualizar Paciente' : 'Salvar Paciente'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </FormSidebar>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Buscar por nome, email ou telefone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Patients List */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {filteredPatients.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {filteredPatients.map((patient) => (
+                <div
+                  key={patient.id}
+                  className="px-6 py-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{patient.nome}</p>
+                      {patient.telefone && (
+                        <div className="flex items-center gap-1 mt-2 text-sm text-gray-600">
+                          <Phone size={16} />
+                          {patient.telefone}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewPatient(patient.id)}
+                        className="px-4 py-2 text-blue-600 hover:bg-blue-100 rounded-lg font-medium transition-colors"
+                      >
+                        Ver Paciente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-6 py-12 text-center text-gray-500">
+              Nenhum paciente encontrado
+            </div>
+          )}
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+export default PatientsPage;
