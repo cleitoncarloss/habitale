@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MessageCircle, Search, Clock, Phone, ChevronRight, UserPlus, X } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
+import MenuButton from '@components/shared/MenuButton';
 import { useData } from '@hooks/useData';
 import { useDateInput } from '@hooks/useDateInput';
 import * as whatsappConversationsService from '@services/whatsappConversationsService';
@@ -177,7 +178,12 @@ function ConversationsPage() {
       <div className="flex flex-col h-screen">
         {/* Header */}
         <div className="pb-6 flex-shrink-0">
-          <h1 className="text-3xl font-bold text-gray-900">Conversas WhatsApp</h1>
+          <div className="flex items-center justify-between lg:justify-start lg:gap-0">
+            <h1 className="text-3xl font-bold text-gray-900">Conversas WhatsApp</h1>
+            <div className="lg:hidden">
+              <MenuButton />
+            </div>
+          </div>
           <p className="text-gray-600 mt-1">Histórico de conversas com pacientes via WhatsApp</p>
         </div>
 
