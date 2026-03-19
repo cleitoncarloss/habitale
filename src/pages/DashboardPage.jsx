@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Calendar, MessageCircle } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
+import MenuButton from '@components/shared/MenuButton';
 import { useData } from '@hooks/useData';
 
 function DashboardPage() {
@@ -63,7 +64,12 @@ function DashboardPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <div className="flex items-center justify-between lg:justify-start lg:gap-0">
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <div className="lg:hidden">
+              <MenuButton />
+            </div>
+          </div>
           <p className="text-gray-600 mt-1">Bem-vindo ao sistema de gerenciamento da clínica</p>
         </div>
 
