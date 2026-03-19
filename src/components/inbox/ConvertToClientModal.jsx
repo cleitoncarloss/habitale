@@ -23,7 +23,7 @@ function ConvertToClientModal({ conversationId, onClose }) {
     if (foundConversation) {
       setConversation(foundConversation);
       setFullName(foundConversation.nome_cliente);
-      setPhone(foundConversation.telefone_cliente);
+      setPhone(maskPhoneInput(foundConversation.telefone_cliente));
       setPatientType(foundConversation.tipo_paciente || PATIENT_TYPES.FIRST_CONSULTATION);
     }
   }, [conversationId, conversations]);
@@ -93,7 +93,7 @@ function ConvertToClientModal({ conversationId, onClose }) {
               type="text"
               value={phone}
               onChange={(event) => setPhone(maskPhoneInput(event.target.value))}
-              placeholder="(XX) XXXXX-XXXX"
+              placeholder="(00) 00000-0000"
               maxLength="15"
               className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}

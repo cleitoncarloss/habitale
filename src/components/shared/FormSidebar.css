@@ -72,6 +72,19 @@
   padding: 1.5rem;
 }
 
+/* Compact variant */
+.form-sidebar-compact {
+  /* Reduce padding for compact layout */
+}
+
+.form-sidebar-compact .form-sidebar-header {
+  padding: 1rem 1.25rem;
+}
+
+.form-sidebar-compact .form-sidebar-content {
+  padding: 1.25rem;
+}
+
 /* Responsive */
 @media (min-width: 640px) {
   .form-sidebar {

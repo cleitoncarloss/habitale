@@ -7,6 +7,7 @@ import MenuButton from '@components/shared/MenuButton';
 import { useData } from '@hooks/useData';
 import { useDateInput } from '@hooks/useDateInput';
 import * as clientsService from '@services/clientsService';
+import { maskPhoneInput } from '@utils/masks';
 
 function PatientsPage() {
   const navigate = useNavigate();
@@ -169,9 +170,10 @@ function PatientsPage() {
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phone: maskPhoneInput(e.target.value) })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg "
-                placeholder="(19) 98917-4429"
+                placeholder="(00) 00000-0000"
+                maxLength="15"
               />
             </div>
 

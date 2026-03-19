@@ -106,7 +106,7 @@ function EditClientModal({ clientId, onClose }) {
               type="text"
               value={phone}
               onChange={(event) => setPhone(maskPhoneInput(event.target.value))}
-              placeholder="(XX) XXXXX-XXXX"
+              placeholder="(00) 00000-0000"
               maxLength="15"
               className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isSaving}

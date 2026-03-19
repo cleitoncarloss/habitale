@@ -355,9 +355,10 @@ function ConversationsPage() {
       <FormSidebar
         isOpen={showPatientForm}
         onClose={() => setShowPatientForm(false)}
-        title="Criar Novo Paciente"
+        title="Novo Paciente"
+        compact
       >
-        <form className="space-y-4 p-6">
+        <form className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nome *

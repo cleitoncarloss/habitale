@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import './FormSidebar.css';
 
-function FormSidebar({ isOpen, onClose, title, children }) {
+function FormSidebar({ isOpen, onClose, title, children, compact = false }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -29,7 +29,7 @@ function FormSidebar({ isOpen, onClose, title, children }) {
       />
 
       {/* Sidebar */}
-      <div className={`form-sidebar ${isAnimating ? 'open' : 'closed'}`}>
+      <div className={`form-sidebar ${isAnimating ? 'open' : 'closed'} ${compact ? 'form-sidebar-compact' : ''}`}>
         {/* Header */}
         <div className="form-sidebar-header">
           <h2 className="form-sidebar-title">{title}</h2>
