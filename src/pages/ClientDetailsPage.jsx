@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useClients from '@hooks/useClients';
 import useAppointments from '@hooks/useAppointments';
+import { useData } from '@hooks/useData';
+import { useDateInput } from '@hooks/useDateInput';
 import { PATIENT_TYPE_LABELS } from '@constants/patientTypes';
 import { ArrowLeft, Edit, Trash2, Calendar, User, Clock } from 'lucide-react';
 import AlertDialog from '@components/shared/AlertDialog';
 import FormSidebar from '@components/shared/FormSidebar';
-import * as professionalsService from '@services/professionalsService';
 
 function ClientDetailsPage() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { fetchClientById, deleteClient, updateClient } = useClients();
   const { appointments } = useAppointments();
+  const { cache, loadProfessionals, loadPatients, deletePatient } = useData();
+  const birthDateEdit = useDateInput();
   const [client, setClient] = useState(null);
-  const [professionals, setProfessionals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -23,7 +25,6 @@ function ClientDetailsPage() {
     nome: '',
     email: '',
     telefone: '',
-    data_nascimento: '',
   });
   const [isEditingSaving, setIsEditingSaving] = useState(false);
 
@@ -31,24 +32,35 @@ function ClientDetailsPage() {
     loadClient();
   }, [clientId]);
 
+  useEffect(() => {
+    loadProfessionals();
+    loadPatients();
+  }, [loadProfessionals, loadPatients]);
+
   async function loadClient() {
+    const cachedPatient = cache.patients?.find((p) => p.id === clientId);
+
+    if (cachedPatient) {
+      setClient(cachedPatient);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
-    const [clientData, professionalsResult] = await Promise.all([
-      fetchClientById(clientId),
-      professionalsService.fetchAll(),
-    ]);
+    const clientData = await fetchClientById(clientId);
     setClient(clientData);
-    setProfessionals(professionalsResult.data || []);
     setIsLoading(false);
   }
+
+  const professionals = cache.professionals || [];
 
   function handleEditClick() {
     setEditFormData({
       nome: client.nome || '',
       email: client.email || '',
       telefone: client.telefone || '',
-      data_nascimento: client.data_nascimento || '',
     });
+    birthDateEdit.setDate(client.data_nascimento || '');
     setShowEditSidebar(true);
   }
 
@@ -59,11 +71,12 @@ function ClientDetailsPage() {
         name: editFormData.nome,
         email: editFormData.email,
         phone: editFormData.telefone,
-        birthDate: editFormData.data_nascimento,
+        birthDate: birthDateEdit.dateISO,
       });
       setClient({
         ...client,
         ...editFormData,
+        data_nascimento: birthDateEdit.dateISO,
       });
       setShowEditSidebar(false);
     } finally {
@@ -79,7 +92,8 @@ function ClientDetailsPage() {
     setIsDeleting(true);
     try {
       await deleteClient(clientId);
-      navigate('/dashboard');
+      deletePatient(clientId);
+      navigate('/patients');
     } finally {
       setIsDeleting(false);
       setShowDeleteAlert(false);
@@ -157,7 +171,7 @@ function ClientDetailsPage() {
               required
               value={editFormData.nome}
               onChange={(e) => setEditFormData({ ...editFormData, nome: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="Nome do paciente"
             />
           </div>
@@ -170,7 +184,7 @@ function ClientDetailsPage() {
               type="email"
               value={editFormData.email}
               onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="email@example.com"
             />
           </div>
@@ -183,20 +197,22 @@ function ClientDetailsPage() {
               type="tel"
               value={editFormData.telefone}
               onChange={(e) => setEditFormData({ ...editFormData, telefone: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="(19) 98917-4429"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Data de Nascimento
+              Data de Nascimento <span className="text-xs text-gray-500">(DD/MM/YYYY)</span>
             </label>
             <input
-              type="date"
-              value={editFormData.data_nascimento}
-              onChange={(e) => setEditFormData({ ...editFormData, data_nascimento: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              type="text"
+              placeholder="DD/MM/YYYY"
+              value={birthDateEdit.dateDisplay}
+              onChange={birthDateEdit.handleChange}
+              maxLength="10"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
             />
           </div>
 

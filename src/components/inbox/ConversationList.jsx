@@ -46,7 +46,7 @@ function ConversationList() {
           placeholder="Buscar por nome ou telefone..."
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
       </div>
 

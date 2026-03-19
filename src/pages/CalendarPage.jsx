@@ -1,33 +1,20 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@components/layout/MainLayout';
-import * as appointmentsService from '@services/appointmentsService';
-import * as clientsService from '@services/clientsService';
+import { useData } from '@hooks/useData';
 
 function CalendarPage() {
-  const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cache, loading, loadAppointments, loadPatients } = useData();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadAppointments();
+    loadPatients();
+  }, [loadAppointments, loadPatients]);
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const [appointmentsResult, patientsResult] = await Promise.all([
-        appointmentsService.fetchAll(),
-        clientsService.fetchAll(),
-      ]);
-      setAppointments(appointmentsResult.data || []);
-      setPatients(patientsResult.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const appointments = cache.appointments || [];
+  const patients = cache.patients || [];
+  const isLoading = (loading.appointments || loading.patients) &&
+    (!cache.appointments || !cache.patients);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();

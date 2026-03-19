@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { MessageCircle, Search, Clock, Phone, ChevronRight, UserPlus, X } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
+import { useData } from '@hooks/useData';
+import { useDateInput } from '@hooks/useDateInput';
 import * as whatsappConversationsService from '@services/whatsappConversationsService';
 import * as clientsService from '@services/clientsService';
 
 function ConversationsPage() {
-  const [conversations, setConversations] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cache, loading, loadConversations } = useData();
+  const birthDate = useDateInput();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -18,7 +20,6 @@ function ConversationsPage() {
     name: '',
     phone: '',
     email: '',
-    birthDate: '',
     patientType: '',
     concern: '',
   });
@@ -26,7 +27,7 @@ function ConversationsPage() {
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [loadConversations]);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -34,18 +35,7 @@ function ConversationsPage() {
     }
   }, [selectedConversation]);
 
-  const loadConversations = async () => {
-    try {
-      setIsLoading(true);
-      const result = await whatsappConversationsService.fetchConversationsFromHistory();
-      console.log('Conversas carregadas:', result);
-      setConversations(result.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar conversas:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const conversations = cache.conversations || [];
 
   const loadMessages = async (conversation) => {
     try {
@@ -104,10 +94,10 @@ function ConversationsPage() {
         name: selectedConversation.nome_cliente || '',
         phone: cleanPhoneNumber(selectedConversation.telefone),
         email: '',
-        birthDate: '',
         patientType: '',
         concern: selectedConversation.assunto || '',
       });
+      birthDate.setDate('');
       setShowPatientForm(true);
       setSuccessMessage('');
     }
@@ -129,7 +119,10 @@ function ConversationsPage() {
 
     try {
       setSavingPatient(true);
-      const result = await clientsService.create(patientFormData);
+      const result = await clientsService.create({
+        ...patientFormData,
+        birthDate: birthDate.dateISO,
+      });
 
       if (result.error) {
         alert(`Erro ao criar paciente: ${result.error.message}`);
@@ -142,10 +135,10 @@ function ConversationsPage() {
         name: '',
         phone: '',
         email: '',
-        birthDate: '',
         patientType: '',
         concern: '',
       });
+      birthDate.setDate('');
 
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
@@ -156,7 +149,7 @@ function ConversationsPage() {
     }
   };
 
-  if (isLoading) {
+  if (loading.conversations && !cache.conversations) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -181,7 +174,7 @@ function ConversationsPage() {
         </div>
       )}
 
-      <div className="flex flex-col h-[calc(100vh-240px)]">
+      <div className="flex flex-col h-screen">
         {/* Header */}
         <div className="pb-6 flex-shrink-0">
           <h1 className="text-3xl font-bold text-gray-900">Conversas WhatsApp</h1>
@@ -189,7 +182,7 @@ function ConversationsPage() {
         </div>
 
         {/* Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-hidden pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-hidden">
           {/* Conversations List */}
           <div className="lg:col-span-1 flex flex-col min-h-0">
             {/* Search Bar */}
@@ -200,7 +193,7 @@ function ConversationsPage() {
                 placeholder="Buscar conversas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg "
               />
             </div>
 
@@ -289,7 +282,7 @@ function ConversationsPage() {
                       Carregando mensagens...
                     </div>
                   ) : messages && messages.length > 0 ? (
-                    messages.map((message, index) => (
+                    [...messages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).map((message, index) => (
                       <div
                         key={index}
                         className={`flex ${
@@ -368,7 +361,7 @@ function ConversationsPage() {
               name="name"
               value={patientFormData.name}
               onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="Nome completo"
             />
           </div>
@@ -382,7 +375,7 @@ function ConversationsPage() {
               name="phone"
               value={patientFormData.phone}
               onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="(11) 9999-9999"
             />
           </div>
@@ -396,21 +389,22 @@ function ConversationsPage() {
               name="email"
               value={patientFormData.email}
               onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="email@exemplo.com"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Data de Nascimento
+              Data de Nascimento <span className="text-xs text-gray-500">(DD/MM/YYYY)</span>
             </label>
             <input
-              type="date"
-              name="birthDate"
-              value={patientFormData.birthDate}
-              onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              type="text"
+              placeholder="DD/MM/YYYY"
+              value={birthDate.dateDisplay}
+              onChange={birthDate.handleChange}
+              maxLength="10"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
             />
           </div>
 
@@ -423,7 +417,7 @@ function ConversationsPage() {
               name="patientType"
               value={patientFormData.patientType}
               onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               placeholder="Ex: Novo, Retorno"
             />
           </div>
@@ -436,7 +430,7 @@ function ConversationsPage() {
               name="concern"
               value={patientFormData.concern}
               onChange={handlePatientFormChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg  resize-none"
               rows="3"
               placeholder="Adicionar observações..."
             />

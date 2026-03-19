@@ -3,69 +3,75 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Phone, Mail } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
+import { useData } from '@hooks/useData';
+import { useDateInput } from '@hooks/useDateInput';
 import * as clientsService from '@services/clientsService';
 
 function PatientsPage() {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cache, loading, loadPatients, addPatient, updatePatient, deletePatient } = useData();
+  const birthDate = useDateInput();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    birth_date: '',
   });
 
   useEffect(() => {
     loadPatients();
-  }, []);
+  }, [loadPatients]);
 
-  const loadPatients = async () => {
-    try {
-      setIsLoading(true);
-      const result = await clientsService.fetchAll();
-      setPatients(result.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar pacientes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const patients = cache.patients || [];
 
   const handleOpenForm = () => {
     setEditingPatient(null);
-    setFormData({ name: '', email: '', phone: '', birth_date: '' });
+    setFormData({ name: '', email: '', phone: '' });
+    birthDate.setDate('');
     setShowForm(true);
   };
 
 
   const handleSavePatient = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       if (editingPatient) {
-        await clientsService.update(editingPatient.id, {
+        const updatedData = {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          birthDate: formData.birth_date,
+          birthDate: birthDate.dateISO,
+        };
+        await clientsService.update(editingPatient.id, updatedData);
+        updatePatient(editingPatient.id, {
+          nome: formData.name,
+          email: formData.email,
+          telefone: formData.phone,
+          data_nascimento: birthDate.dateISO,
         });
       } else {
-        await clientsService.create({
+        const result = await clientsService.create({
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          birthDate: formData.birth_date,
+          birthDate: birthDate.dateISO,
         });
+        if (result.data) {
+          addPatient(result.data);
+        }
       }
-      setFormData({ name: '', email: '', phone: '', birth_date: '' });
+      setFormData({ name: '', email: '', phone: '' });
+      birthDate.setDate('');
       setEditingPatient(null);
       setShowForm(false);
-      loadPatients();
     } catch (error) {
       console.error('Erro ao salvar paciente:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -80,7 +86,7 @@ function PatientsPage() {
       patient.telefone?.includes(searchTerm)
   );
 
-  if (isLoading) {
+  if (loading.patients && !cache.patients) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -124,7 +130,7 @@ function PatientsPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="Nome do paciente"
               />
             </div>
@@ -137,7 +143,7 @@ function PatientsPage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="email@example.com"
               />
             </div>
@@ -150,34 +156,38 @@ function PatientsPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="(19) 98917-4429"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data de Nascimento
+                Data de Nascimento <span className="text-xs text-gray-500">(DD/MM/YYYY)</span>
               </label>
               <input
-                type="date"
-                value={formData.birth_date}
-                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="text"
+                placeholder="DD/MM/YYYY"
+                value={birthDate.dateDisplay}
+                onChange={birthDate.handleChange}
+                maxLength="10"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
               />
             </div>
 
             <div className="space-y-3 pt-4 border-t border-gray-200">
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingPatient ? 'Atualizar Paciente' : 'Salvar Paciente'}
+                {isSaving ? 'Salvando...' : editingPatient ? 'Atualizar Paciente' : 'Salvar Paciente'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
@@ -193,7 +203,7 @@ function PatientsPage() {
             placeholder="Buscar por nome, email ou telefone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg "
           />
         </div>
 

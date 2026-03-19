@@ -40,7 +40,7 @@ function CustomSelect({ value, onChange, options, placeholder, required = false 
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg  bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors focus:outline-none"
       >
         <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
           {selectedOption ? selectedOption.label : placeholder}

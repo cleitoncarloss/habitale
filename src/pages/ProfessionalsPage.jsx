@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Phone, Mail, Briefcase } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
+import { useData } from '@hooks/useData';
 import * as professionalsService from '@services/professionalsService';
 
 function ProfessionalsPage() {
-  const [professionals, setProfessionals] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cache, loading, loadProfessionals, addProfessional, updateProfessional, deleteProfessional } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,19 +21,9 @@ function ProfessionalsPage() {
 
   useEffect(() => {
     loadProfessionals();
-  }, []);
+  }, [loadProfessionals]);
 
-  const loadProfessionals = async () => {
-    try {
-      setIsLoading(true);
-      const result = await professionalsService.fetchAll();
-      setProfessionals(result.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar profissionais:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const professionals = cache.professionals || [];
 
   const handleOpenNewForm = () => {
     setEditingId(null);
@@ -54,32 +45,38 @@ function ProfessionalsPage() {
 
   const handleSubmitProfessional = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
+      const updateData = {
+        name: formData.name,
+        crm: formData.crm,
+        specialization: formData.specialization,
+        email: formData.email,
+        phone: formData.phone,
+      };
+
       if (editingId) {
-        // Modo edição
-        await professionalsService.update(editingId, {
-          name: formData.name,
+        await professionalsService.update(editingId, updateData);
+        updateProfessional(editingId, {
+          nome: formData.name,
           crm: formData.crm,
-          specialization: formData.specialization,
+          especializacao: formData.specialization,
           email: formData.email,
-          phone: formData.phone,
+          telefone: formData.phone,
         });
       } else {
-        // Modo criação
-        await professionalsService.create({
-          name: formData.name,
-          crm: formData.crm,
-          specialization: formData.specialization,
-          email: formData.email,
-          phone: formData.phone,
-        });
+        const result = await professionalsService.create(updateData);
+        if (result.data) {
+          addProfessional(result.data);
+        }
       }
       setFormData({ name: '', email: '', phone: '', specialization: '', crm: '' });
       setEditingId(null);
       setShowForm(false);
-      loadProfessionals();
     } catch (error) {
       console.error('Erro ao salvar profissional:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -87,7 +84,7 @@ function ProfessionalsPage() {
     if (window.confirm('Tem certeza que deseja remover este profissional?')) {
       try {
         await professionalsService.remove(id);
-        loadProfessionals();
+        deleteProfessional(id);
       } catch (error) {
         console.error('Erro ao deletar profissional:', error);
       }
@@ -102,7 +99,7 @@ function ProfessionalsPage() {
       professional.especializacao?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
+  if (loading.professionals && !cache.professionals) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -146,7 +143,7 @@ function ProfessionalsPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="Nome do profissional"
               />
             </div>
@@ -160,7 +157,7 @@ function ProfessionalsPage() {
                 required
                 value={formData.crm}
                 onChange={(e) => setFormData({ ...formData, crm: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="12345/SP"
               />
             </div>
@@ -174,7 +171,7 @@ function ProfessionalsPage() {
                 required
                 value={formData.specialization}
                 onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="Ex: Ortodontia, Periodontia"
               />
             </div>
@@ -187,7 +184,7 @@ function ProfessionalsPage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="email@clinica.com"
               />
             </div>
@@ -200,7 +197,7 @@ function ProfessionalsPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg "
                 placeholder="(19) 98917-4429"
               />
             </div>
@@ -208,14 +205,16 @@ function ProfessionalsPage() {
             <div className="space-y-3 pt-4 border-t border-gray-200">
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingId ? 'Salvar Alterações' : 'Salvar Profissional'}
+                {isSaving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Salvar Profissional'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
@@ -231,7 +230,7 @@ function ProfessionalsPage() {
             placeholder="Buscar por nome, especialização ou CRM..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg "
           />
         </div>
 

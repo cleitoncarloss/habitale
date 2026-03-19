@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useClients from '@hooks/useClients';
 import { PATIENT_TYPES, PATIENT_TYPE_LABELS } from '@constants/patientTypes';
 import { CLIENT_STATUSES } from '@constants/clientStatuses';
+import { maskPhoneInput } from '@utils/masks';
 import { X } from 'lucide-react';
 
 function EditClientSidebar({ clientId, onClose }) {
@@ -123,7 +124,7 @@ function EditClientSidebar({ clientId, onClose }) {
                 type="text"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               />
             </div>
@@ -133,8 +134,10 @@ function EditClientSidebar({ clientId, onClose }) {
               <input
                 type="text"
                 value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(event) => setPhone(maskPhoneInput(event.target.value))}
+                placeholder="(XX) XXXXX-XXXX"
+                maxLength="15"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               />
             </div>
@@ -145,7 +148,7 @@ function EditClientSidebar({ clientId, onClose }) {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               />
             </div>
@@ -156,7 +159,7 @@ function EditClientSidebar({ clientId, onClose }) {
                 type="date"
                 value={birthDate}
                 onChange={(event) => setBirthDate(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               />
             </div>
@@ -166,7 +169,7 @@ function EditClientSidebar({ clientId, onClose }) {
               <select
                 value={patientType}
                 onChange={(event) => setPatientType(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               >
                 {Object.entries(PATIENT_TYPE_LABELS).map(([value, label]) => (
@@ -182,7 +185,7 @@ function EditClientSidebar({ clientId, onClose }) {
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 disabled={isSaving}
               >
                 {Object.values(CLIENT_STATUSES).map((statusValue) => (
@@ -198,7 +201,7 @@ function EditClientSidebar({ clientId, onClose }) {
               <textarea
                 value={concern}
                 onChange={(event) => setConcern(event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded"
                 rows="3"
                 disabled={isSaving}
               />

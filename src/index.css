@@ -18,3 +18,14 @@ body {
     @apply cursor-pointer;
   }
 }
+
+@layer utilities {
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button[role="button"]:focus {
+    border-color: rgb(59, 130, 246) !important;
+    border-width: 2px !important;
+    outline: none !important;
+  }
+}

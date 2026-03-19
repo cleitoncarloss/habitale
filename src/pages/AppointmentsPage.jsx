@@ -1,70 +1,106 @@
 import { useState, useEffect } from 'react';
-import { Plus, Clock, Trash2 } from 'lucide-react';
+import { Plus, Clock, Trash2, Edit2 } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
 import CustomSelect from '@components/shared/CustomSelect';
 import AlertDialog from '@components/shared/AlertDialog';
+import { useData } from '@hooks/useData';
+import { APPOINTMENT_TYPES, APPOINTMENT_TYPE_LABELS } from '@constants/appointmentTypes';
 import * as appointmentsService from '@services/appointmentsService';
-import * as clientsService from '@services/clientsService';
-import * as professionalsService from '@services/professionalsService';
+
+function formatDateToDisplay(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateToInput(displayStr) {
+  if (!displayStr) return '';
+  const parts = displayStr.split('/');
+  if (parts.length !== 3) return '';
+  const [day, month, year] = parts;
+  if (!/^\d{2}$/.test(day) || !/^\d{2}$/.test(month) || !/^\d{4}$/.test(year)) return '';
+  return `${year}-${month}-${day}`;
+}
+
+function maskDateInput(value) {
+  const onlyNumbers = value.replace(/\D/g, '');
+
+  if (onlyNumbers.length <= 2) {
+    return onlyNumbers;
+  }
+  if (onlyNumbers.length <= 4) {
+    return `${onlyNumbers.slice(0, 2)}/${onlyNumbers.slice(2)}`;
+  }
+  return `${onlyNumbers.slice(0, 2)}/${onlyNumbers.slice(2, 4)}/${onlyNumbers.slice(4, 8)}`;
+}
+
+function maskTimeInput(value) {
+  const onlyNumbers = value.replace(/\D/g, '');
+
+  if (onlyNumbers.length <= 2) {
+    return onlyNumbers;
+  }
+  return `${onlyNumbers.slice(0, 2)}:${onlyNumbers.slice(2, 4)}`;
+}
 
 function AppointmentsPage() {
-  const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [professionals, setProfessionals] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cache, loading, loadAppointments, loadPatients, loadProfessionals, addAppointment, updateAppointment, deleteAppointment } = useData();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     patient_id: '',
     professional_id: '',
     date: '',
     time: '',
-    type: 'consultation',
+    type: APPOINTMENT_TYPES.CLEANING,
     notes: '',
+    notify_patient: true,
+  });
+
+  const [formDataDisplay, setFormDataDisplay] = useState({
+    dateDisplay: '',
+    timeDisplay: '',
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadAppointments();
+    loadPatients();
+    loadProfessionals();
+  }, [loadAppointments, loadPatients, loadProfessionals]);
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const [appointmentsResult, patientsResult, professionalsResult] = await Promise.all([
-        appointmentsService.fetchAll(),
-        clientsService.fetchAll(),
-        professionalsService.fetchAll(),
-      ]);
-      setAppointments(appointmentsResult.data || []);
-      setPatients(patientsResult.data || []);
-      setProfessionals(professionalsResult.data || []);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const appointments = cache.appointments || [];
+  const patients = cache.patients || [];
+  const professionals = cache.professionals || [];
+  const isLoading = loading.appointments && !cache.appointments;
 
   const handleAddAppointment = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const dateTime = `${formData.date}T${formData.time}:00`;
-      await appointmentsService.create({
+      const result = await appointmentsService.create({
         clientId: formData.patient_id,
         professionalId: formData.professional_id,
         appointmentDate: dateTime,
         serviceType: formData.type,
         observations: formData.notes,
         status: 'pendente',
+        notifyPatient: formData.notify_patient,
       });
-      setFormData({ patient_id: '', professional_id: '', date: '', time: '', type: 'consultation', notes: '' });
+      if (result.data) {
+        addAppointment(result.data);
+      }
+      resetFormData();
       setShowForm(false);
-      loadData();
     } catch (error) {
       console.error('Erro ao adicionar agendamento:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -77,7 +113,7 @@ function AppointmentsPage() {
     setIsDeleting(true);
     try {
       await appointmentsService.remove(appointmentToDelete);
-      loadData();
+      deleteAppointment(appointmentToDelete);
       setShowDeleteAlert(false);
       setAppointmentToDelete(null);
     } catch (error) {
@@ -87,6 +123,116 @@ function AppointmentsPage() {
     }
   };
 
+  const resetFormData = () => {
+    setFormData({
+      patient_id: '',
+      professional_id: '',
+      date: '',
+      time: '',
+      type: APPOINTMENT_TYPES.CLEANING,
+      notes: '',
+      notify_patient: true,
+    });
+    setFormDataDisplay({
+      dateDisplay: '',
+      timeDisplay: '',
+    });
+  };
+
+  const handleOpenNewForm = () => {
+    setEditingId(null);
+    resetFormData();
+    setShowForm(true);
+  };
+
+  const handleDateDisplayChange = (e) => {
+    const maskedDate = maskDateInput(e.target.value);
+    setFormDataDisplay({ ...formDataDisplay, dateDisplay: maskedDate });
+
+    const date = formatDateToInput(maskedDate);
+    if (date) {
+      setFormData({ ...formData, date });
+    } else {
+      setFormData({ ...formData, date: '' });
+    }
+  };
+
+  const handleTimeDisplayChange = (e) => {
+    const maskedTime = maskTimeInput(e.target.value);
+    setFormDataDisplay({ ...formDataDisplay, timeDisplay: maskedTime });
+    setFormData({ ...formData, time: maskedTime });
+  };
+
+  const handleEditAppointment = (appointment) => {
+    const appointmentDateTime = new Date(appointment.data_agendamento);
+    const date = appointmentDateTime.toISOString().split('T')[0];
+    const time = appointmentDateTime.toTimeString().slice(0, 5);
+
+    setFormData({
+      patient_id: appointment.cliente_id,
+      professional_id: appointment.profissional_id,
+      date,
+      time,
+      type: appointment.tipo_servico,
+      notes: appointment.observacoes || '',
+      notify_patient: appointment.deve_notificar_1_dia || false,
+    });
+
+    setFormDataDisplay({
+      dateDisplay: formatDateToDisplay(date),
+      timeDisplay: time,
+    });
+
+    setEditingId(appointment.id);
+    setShowForm(true);
+  };
+
+  const handleSubmitForm = async (e) => {
+    e.preventDefault();
+
+    if (editingId) {
+      await handleUpdateAppointment(e);
+    } else {
+      await handleAddAppointment(e);
+    }
+  };
+
+  const handleUpdateAppointment = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const dateTime = `${formData.date}T${formData.time}:00`;
+      await appointmentsService.update(editingId, {
+        clientId: formData.patient_id,
+        professionalId: formData.professional_id,
+        appointmentDate: dateTime,
+        serviceType: formData.type,
+        observations: formData.notes,
+        notifyPatient: formData.notify_patient,
+      });
+      updateAppointment(editingId, {
+        cliente_id: formData.patient_id,
+        profissional_id: formData.professional_id,
+        data_agendamento: dateTime,
+        tipo_servico: formData.type,
+        observacoes: formData.notes,
+        deve_notificar_1_dia: formData.notify_patient,
+      });
+      resetFormData();
+      setEditingId(null);
+      setShowForm(false);
+    } catch (error) {
+      console.error('Erro ao atualizar agendamento:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    resetFormData();
+  };
 
   const getPatientName = (clientId) => {
     return patients.find((p) => p.id === clientId)?.nome || 'Desconhecido';
@@ -124,7 +270,7 @@ function AppointmentsPage() {
             <p className="text-gray-600 mt-1">Gestão de agendamentos e consultas</p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={handleOpenNewForm}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
           >
             <Plus size={20} />
@@ -132,13 +278,13 @@ function AppointmentsPage() {
           </button>
         </div>
 
-        {/* Add Appointment Sidebar */}
+        {/* Add/Edit Appointment Sidebar */}
         <FormSidebar
           isOpen={showForm}
-          onClose={() => setShowForm(false)}
-          title="Novo Agendamento"
+          onClose={handleCloseForm}
+          title={editingId ? 'Editar Agendamento' : 'Novo Agendamento'}
         >
-          <form onSubmit={handleAddAppointment} className="space-y-4">
+          <form onSubmit={handleSubmitForm} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Paciente *
@@ -175,41 +321,44 @@ function AppointmentsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tipo de Consulta
               </label>
-              <select
+              <CustomSelect
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="consultation">Consulta</option>
-                <option value="treatment">Tratamento</option>
-                <option value="cleaning">Limpeza</option>
-                <option value="check">Check-up</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(value) => setFormData({ ...formData, type: value })}
+                options={Object.entries(APPOINTMENT_TYPE_LABELS).map(([value, label]) => ({
+                  value: value,
+                  label: label,
+                }))}
+                placeholder="Selecione um tipo de consulta"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hora *
+                Data * <span className="text-xs text-gray-500">(DD/MM/YYYY)</span>
               </label>
               <input
-                type="time"
+                type="text"
                 required
-                value={formData.time}
-                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="DD/MM/YYYY"
+                value={formDataDisplay.dateDisplay}
+                onChange={handleDateDisplayChange}
+                maxLength="10"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg  hover:border-gray-400 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hora * <span className="text-xs text-gray-500">(HH:MM)</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="HH:MM"
+                value={formDataDisplay.timeDisplay}
+                onChange={handleTimeDisplayChange}
+                maxLength="5"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg  hover:border-gray-400 transition-colors"
               />
             </div>
 
@@ -220,23 +369,38 @@ function AppointmentsPage() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg  hover:border-gray-400 transition-colors"
                 rows="3"
                 placeholder="Observações sobre o agendamento..."
               />
             </div>
 
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+              <input
+                type="checkbox"
+                id="notify_patient"
+                checked={formData.notify_patient}
+                onChange={(e) => setFormData({ ...formData, notify_patient: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+              />
+              <label htmlFor="notify_patient" className="text-sm text-gray-700 cursor-pointer select-none">
+                Notificar paciente 1 dia antes via WhatsApp
+              </label>
+            </div>
+
             <div className="space-y-3 pt-4 border-t border-gray-200">
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Salvar Agendamento
+                {isSaving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Salvar Agendamento'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
-                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
+                onClick={handleCloseForm}
+                disabled={isSaving}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
@@ -269,19 +433,25 @@ function AppointmentsPage() {
                           })}
                         </div>
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded inline-block">
-                          {appointment.tipo_servico === 'consultation' && 'Consulta'}
-                          {appointment.tipo_servico === 'treatment' && 'Tratamento'}
-                          {appointment.tipo_servico === 'cleaning' && 'Limpeza'}
-                          {appointment.tipo_servico === 'check' && 'Check-up'}
+                          {APPOINTMENT_TYPE_LABELS[appointment.tipo_servico]}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleDeleteAppointmentClick(appointment.id)}
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-red-100 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={18} className="text-red-600" />
-                        <span className="text-sm font-medium text-red-600">Excluir</span>
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditAppointment(appointment)}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-blue-100 rounded-lg transition-colors"
+                        >
+                          <Edit2 size={18} className="text-blue-600" />
+                          <span className="text-sm font-medium text-blue-600">Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAppointmentClick(appointment.id)}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={18} className="text-red-600" />
+                          <span className="text-sm font-medium text-red-600">Excluir</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

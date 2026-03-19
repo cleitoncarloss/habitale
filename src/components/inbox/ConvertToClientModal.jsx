@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useConversations from '@hooks/useConversations';
 import useClients from '@hooks/useClients';
 import { PATIENT_TYPES, PATIENT_TYPE_LABELS } from '@constants/patientTypes';
+import { maskPhoneInput } from '@utils/masks';
 import { X } from 'lucide-react';
 
 function ConvertToClientModal({ conversationId, onClose }) {
@@ -81,7 +82,7 @@ function ConvertToClientModal({ conversationId, onClose }) {
               type="text"
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             />
           </div>
@@ -91,8 +92,10 @@ function ConvertToClientModal({ conversationId, onClose }) {
             <input
               type="text"
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(event) => setPhone(maskPhoneInput(event.target.value))}
+              placeholder="(XX) XXXXX-XXXX"
+              maxLength="15"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             />
           </div>
@@ -103,7 +106,7 @@ function ConvertToClientModal({ conversationId, onClose }) {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             />
           </div>
@@ -113,7 +116,7 @@ function ConvertToClientModal({ conversationId, onClose }) {
             <select
               value={patientType}
               onChange={(event) => setPatientType(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             >
               {Object.entries(PATIENT_TYPE_LABELS).map(([value, label]) => (

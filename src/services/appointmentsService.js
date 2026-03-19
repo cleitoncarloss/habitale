@@ -40,6 +40,7 @@ async function create(appointmentData) {
       tipo_servico: appointmentData.serviceType,
       observacoes: appointmentData.observations,
       status: appointmentData.status || 'pendente',
+      deve_notificar_1_dia: appointmentData.notifyPatient !== undefined ? appointmentData.notifyPatient : true,
     })
     .select()
     .single();
@@ -50,11 +51,13 @@ async function create(appointmentData) {
 async function update(appointmentId, appointmentData) {
   const updatePayload = {};
 
+  if (appointmentData.clientId !== undefined) updatePayload.cliente_id = appointmentData.clientId;
   if (appointmentData.professionalId !== undefined) updatePayload.profissional_id = appointmentData.professionalId;
   if (appointmentData.appointmentDate !== undefined) updatePayload.data_agendamento = appointmentData.appointmentDate;
   if (appointmentData.serviceType !== undefined) updatePayload.tipo_servico = appointmentData.serviceType;
   if (appointmentData.observations !== undefined) updatePayload.observacoes = appointmentData.observations;
   if (appointmentData.status !== undefined) updatePayload.status = appointmentData.status;
+  if (appointmentData.notifyPatient !== undefined) updatePayload.deve_notificar_1_dia = appointmentData.notifyPatient;
 
   const result = await supabase
     .from('agendamentos')

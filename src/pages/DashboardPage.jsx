@@ -1,57 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Users, Calendar, MessageCircle } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
-import * as clientsService from '@services/clientsService';
-import * as appointmentsService from '@services/appointmentsService';
-import * as whatsappConversationsService from '@services/whatsappConversationsService';
+import { useData } from '@hooks/useData';
 
 function DashboardPage() {
-  const [stats, setStats] = useState({
-    patients: 0,
-    appointments: 0,
-    conversations: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [recentAppointments, setRecentAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
+  const { cache, loading, loadPatients, loadAppointments, loadConversations } = useData();
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    loadPatients();
+    loadAppointments();
+    loadConversations();
+  }, [loadPatients, loadAppointments, loadConversations]);
 
-  const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
+  const patients = cache.patients || [];
+  const appointments = cache.appointments || [];
+  const conversations = cache.conversations || [];
 
-      const [patientsResult, appointmentsResult, conversationsResult] = await Promise.all([
-        clientsService.fetchAll(),
-        appointmentsService.fetchAll(),
-        whatsappConversationsService.fetchConversationsFromHistory(),
-      ]);
+  const recentAppointments = appointments
+    .filter((apt) => new Date(apt.data_agendamento) > new Date())
+    .sort((a, b) => new Date(a.data_agendamento) - new Date(b.data_agendamento))
+    .slice(0, 5);
 
-      const patientsData = patientsResult.data || [];
-      const appointments = appointmentsResult.data || [];
-      const conversations = conversationsResult.data || [];
-
-      const upcomingAppointments = appointments
-        .filter((apt) => new Date(apt.data_agendamento) > new Date())
-        .sort((a, b) => new Date(a.data_agendamento) - new Date(b.data_agendamento))
-        .slice(0, 5);
-
-      setStats({
-        patients: Array.isArray(patientsData) ? patientsData.length : 0,
-        appointments: Array.isArray(appointments) ? appointments.length : 0,
-        conversations: Array.isArray(conversations) ? conversations.length : 0,
-      });
-
-      setPatients(patientsData);
-      setRecentAppointments(upcomingAppointments);
-    } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const stats = {
+    patients: Array.isArray(patients) ? patients.length : 0,
+    appointments: Array.isArray(appointments) ? appointments.length : 0,
+    conversations: Array.isArray(conversations) ? conversations.length : 0,
   };
+
+  const isLoading = (loading.patients || loading.appointments || loading.conversations) &&
+    (!cache.patients || !cache.appointments || !cache.conversations);
 
   const StatCard = ({ icon: Icon, label, value, color }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">

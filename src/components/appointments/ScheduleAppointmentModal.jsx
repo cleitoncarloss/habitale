@@ -8,6 +8,7 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
   const [appointmentTime, setAppointmentTime] = useState('');
   const [serviceType, setServiceType] = useState(APPOINTMENT_TYPES.CLEANING);
   const [observations, setObservations] = useState('');
+  const [notifyPatient, setNotifyPatient] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,6 +31,7 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
       appointmentTime,
       serviceType,
       observations,
+      notifyPatient,
     });
 
     if (!created) {
@@ -61,7 +63,7 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
               type="date"
               value={appointmentDate}
               onChange={(event) => setAppointmentDate(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             />
           </div>
@@ -72,7 +74,7 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
               type="time"
               value={appointmentTime}
               onChange={(event) => setAppointmentTime(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             />
           </div>
@@ -82,7 +84,7 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
             <select
               value={serviceType}
               onChange={(event) => setServiceType(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               disabled={isLoading}
             >
               {Object.entries(APPOINTMENT_TYPE_LABELS).map(([value, label]) => (
@@ -98,10 +100,24 @@ function ScheduleAppointmentModal({ clientId, onClose }) {
             <textarea
               value={observations}
               onChange={(event) => setObservations(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded"
               rows="3"
               disabled={isLoading}
             />
+          </div>
+
+          <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+            <input
+              type="checkbox"
+              id="notify_patient_modal"
+              checked={notifyPatient}
+              onChange={(e) => setNotifyPatient(e.target.checked)}
+              disabled={isLoading}
+              className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+            />
+            <label htmlFor="notify_patient_modal" className="text-sm text-gray-700 cursor-pointer select-none">
+              Notificar paciente 1 dia antes via WhatsApp
+            </label>
           </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}

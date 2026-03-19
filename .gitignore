@@ -1,9 +1,5 @@
 node_modules
 database
 rules
-CLAUDE.md
-DATABASE_SCHEMA.md
-EDGE_FUNCTION_UPDATED.md
-GEMINI.md
-README.md
+*.md
 .env
