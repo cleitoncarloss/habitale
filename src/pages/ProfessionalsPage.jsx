@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Phone, Mail, Briefcase } from 'lucide-react';
 import MainLayout from '@components/layout/MainLayout';
 import FormSidebar from '@components/shared/FormSidebar';
+import MenuButton from '@components/shared/MenuButton';
 import { useData } from '@hooks/useData';
 import * as professionalsService from '@services/professionalsService';
 
@@ -113,18 +114,28 @@ function ProfessionalsPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4">
+          {/* Title Row with Menu */}
+          <div className="flex items-center justify-between lg:justify-start lg:gap-0">
             <h1 className="text-3xl font-bold text-gray-900">Profissionais</h1>
-            <p className="text-gray-600 mt-1">Gerencie os profissionais da clínica</p>
+            <div className="lg:hidden">
+              <MenuButton />
+            </div>
           </div>
-          <button
-            onClick={handleOpenNewForm}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-          >
-            <Plus size={20} />
-            Novo Profissional
-          </button>
+
+          {/* Subtitle */}
+          <p className="text-gray-600 -mt-2">Gerencie os profissionais da clínica</p>
+
+          {/* Button Row */}
+          <div className="flex gap-4">
+            <button
+              onClick={handleOpenNewForm}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+            >
+              <Plus size={20} />
+              Novo Profissional
+            </button>
+          </div>
         </div>
 
         {/* Add/Edit Professional Sidebar */}

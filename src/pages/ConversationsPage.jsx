@@ -282,7 +282,7 @@ function ConversationsPage() {
                       Carregando mensagens...
                     </div>
                   ) : messages && messages.length > 0 ? (
-                    [...messages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).map((message, index) => (
+                    messages.map((message, index) => (
                       <div
                         key={index}
                         className={`flex ${

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthentication from '@hooks/useAuthentication';
 import { DataProvider } from '@contexts/DataContext';
+import { SidebarProvider } from '@context/SidebarContext';
 import { ROUTES } from '@constants/routes';
 import LoginPage from '@pages/LoginPage';
 import SignupPage from '@pages/SignupPage';
@@ -29,8 +30,9 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
-      <DataProvider>
-        <Routes>
+      <SidebarProvider>
+        <DataProvider>
+          <Routes>
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.SIGNUP} element={<SignupPage />} />
         <Route
@@ -91,7 +93,8 @@ function App() {
         />
         <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       </Routes>
-      </DataProvider>
+        </DataProvider>
+      </SidebarProvider>
     </BrowserRouter>
   );
 }

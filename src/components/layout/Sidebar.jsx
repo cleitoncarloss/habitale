@@ -7,16 +7,15 @@ import {
   MessageCircle,
   UserCheck,
   LogOut,
-  Menu,
-  X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useContext } from 'react';
 import supabase from '@services/supabaseClient';
+import { SidebarContext } from '@context/SidebarContext';
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useContext(SidebarContext);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -87,16 +86,6 @@ function Sidebar() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex-col z-40">
         <NavContent />
-      </div>
-
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 hover:bg-gray-100 rounded-lg"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </div>
 
       {/* Mobile Sidebar */}
