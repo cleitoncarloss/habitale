@@ -77,11 +77,13 @@ function LoginForm() {
         </Link>
       </p>
 
+      {/* TODO: Implementar recuperação de senha
       <p className="text-center text-gray-600 text-sm mt-2">
         <Link to={ROUTES.PASSWORD_RECOVERY} className="text-blue-600 hover:underline">
           Esqueci a senha
         </Link>
       </p>
+      */}
     </form>
   );
 }
