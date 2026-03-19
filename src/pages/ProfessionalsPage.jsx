@@ -114,20 +114,23 @@ function ProfessionalsPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4">
-          {/* Title Row with Menu */}
-          <div className="flex items-center justify-between lg:justify-start lg:gap-0">
-            <h1 className="text-3xl font-bold text-gray-900">Profissionais</h1>
-            <div className="lg:hidden">
-              <MenuButton />
+        <div className="lg:flex lg:items-start lg:justify-between lg:gap-6">
+          {/* Title and Subtitle */}
+          <div className="flex-1">
+            {/* Title Row with Menu */}
+            <div className="flex items-center justify-between lg:justify-start lg:gap-0">
+              <h1 className="text-3xl font-bold text-gray-900">Profissionais</h1>
+              <div className="lg:hidden">
+                <MenuButton />
+              </div>
             </div>
+
+            {/* Subtitle */}
+            <p className="text-gray-600 mt-1">Gerencie os profissionais da clínica</p>
           </div>
 
-          {/* Subtitle */}
-          <p className="text-gray-600 -mt-2">Gerencie os profissionais da clínica</p>
-
           {/* Button Row */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 mt-4 lg:mt-0 lg:flex-shrink-0">
             <button
               onClick={handleOpenNewForm}
               className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
